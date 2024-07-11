@@ -14,7 +14,9 @@ dependencies:
   image_picker_web: ^2.0.0
   file_picker: ^5.0.1
   url_launcher: ^6.0.0
-  cached_network_image: ^3.2.0  # Agrega esta línea para la dependencia cached_network_image
+  cached_network_image: ^3.2.0
+
+
 
 dev_dependencies:
   flutter_test:

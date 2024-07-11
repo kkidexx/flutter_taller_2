@@ -26,8 +26,20 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   Uint8List? _imageBytes;
   bool _isLoading = false;
+  TextEditingController _controller = TextEditingController();
+  List<Map<String, String>> chatHistory = []; // Modified to store messages and responses
 
-  Future<void> _pickImage() async {
+  Map<String, String> predefinedResponses = {
+    'hola': 'Hola, ¿cómo estás? ¿En qué puedo ayudarte?',
+    'adiós': '¡Hasta luego! Espero haberte sido útil.',
+    'ayuda': 'Puedes pedirme que suba una imagen o simplemente conversar.',
+    'imagen': 'Para subir una imagen, presiona el botón "Subir Imagen".',
+    'gracias': '¡De nada! Estoy aquí para ayudarte.',
+    'default': 'Lo siento, no entiendo tu mensaje.',
+    'cuanto es 2 + 2': 'la respuesta es 4'
+  };
+
+  void _pickImage() async {
     setState(() {
       _isLoading = true;
     });
@@ -55,66 +67,130 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  void _sendMessage(String message) {
+    setState(() {
+      String trimmedMessage = message.trim().toLowerCase();
+      String response;
+      
+      if (predefinedResponses.containsKey(trimmedMessage)) {
+        response = predefinedResponses[trimmedMessage]!;
+      } else {
+        response = predefinedResponses['default']!;
+      }
+      
+      Map<String, String> messageData = {
+        'message': message,
+        'response': response,
+      };
+
+      chatHistory.add(messageData);
+      _controller.clear();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              image: DecorationImage(
-                image: NetworkImage('https://static.vecteezy.com/system/resources/previews/012/466/836/non_2x/pretty-nebula-galaxy-astrology-deep-outer-space-cosmos-background-beautiful-abstract-illustration-art-dust-free-photo.jpg'), // Reemplaza con la URL de tu imagen
-                fit: BoxFit.cover,
+      appBar: AppBar(
+        title: Text('Chatbot'),
+      ),
+      body: Container(
+        color: Colors.blueGrey[900], // Fondo de color sólido
+        padding: EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            if (_isLoading)
+              CircularProgressIndicator(),
+            if (!_isLoading && _imageBytes == null)
+              Text('No se ha subido ninguna imagen', style: TextStyle(color: Colors.white)),
+            if (_imageBytes != null)
+              Column(
+                children: [
+                  Image.memory(_imageBytes!),
+                  SizedBox(height: 20),
+                  ElevatedButton.icon(
+                    onPressed: _clearImage,
+                    icon: Icon(Icons.undo),
+                    label: Text('Deshacer Imagen'),
+                  ),
+                ],
               ),
+            SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: _pickImage,
+              icon: Icon(Icons.upload_file),
+              label: Text('Subir Imagen'),
             ),
-          ),
-          Center(
-            child: SingleChildScrollView(
-              child: Center(
+            SizedBox(height: 20),
+            Expanded(
+              child: Container(
+                padding: EdgeInsets.all(16.0),
+                decoration: BoxDecoration(
+                  color: Color.fromARGB(255, 179, 163, 209),
+                  borderRadius: BorderRadius.circular(12.0),
+                ),
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: <Widget>[
-                    Text(
-                      'Chatbot',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                  children: [
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            for (var item in chatHistory)
+                              Container(
+                                margin: EdgeInsets.symmetric(vertical: 4),
+                                padding: EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Tú: ${item['message']}',
+                                      style: TextStyle(fontSize: 18, color: Colors.black),
+                                    ),
+                                    SizedBox(height: 4),
+                                    Text(
+                                      'Bot: ${item['response']}',
+                                      style: TextStyle(fontSize: 18, color: Colors.black),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ),
                       ),
                     ),
-                    SizedBox(height: 20),
-                    if (_isLoading)
-                      CircularProgressIndicator(), // Icono de cargando
-                    if (!_isLoading && _imageBytes == null)
-                      Text('No se ha subido ninguna imagen', style: TextStyle(color: Colors.white)),
-                    if (_imageBytes != null)
-                      Column(
-                        children: [
-                          Image.memory(_imageBytes!),
-                          SizedBox(height: 20),
-                          ElevatedButton.icon(
-                            onPressed: _clearImage,
-                            icon: Icon(Icons.undo), // Icono de deshacer
-                            label: Text('Deshacer Imagen'),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _controller,
+                            decoration: InputDecoration(
+                              hintText: 'Escribe tu mensaje...',
+                            ),
+                            onSubmitted: (value) => _sendMessage(value),
                           ),
-                        ],
-                      ),
-                    SizedBox(height: 20),
-                    ElevatedButton.icon(
-                      onPressed: _pickImage,
-                      icon: Icon(Icons.upload_file),
-                      label: Text(
-                        'Subir Imagen',
-                        style: TextStyle(color: Color.fromARGB(255, 75, 105, 238)), // Color del texto del botón
-                      ),
+                        ),
+                        IconButton(
+                          icon: Icon(
+                            Icons.send,
+                            color: Colors.blueAccent, // Cambia el color del icono
+                            size: 30, // Ajusta el tamaño del icono
+                          ),
+                          onPressed: () => _sendMessage(_controller.text),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
