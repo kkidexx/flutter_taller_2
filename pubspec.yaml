@@ -1,0 +1,25 @@
+name: flutter_taller_2
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.4.3 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.6
+  image_picker_web: ^2.0.0
+  file_picker: ^5.0.1
+  url_launcher: ^6.0.0
+  cached_network_image: ^3.2.0  # Agrega esta línea para la dependencia cached_network_image
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
