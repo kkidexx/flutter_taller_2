@@ -3,6 +3,8 @@ import 'package:file_picker/file_picker.dart';
 import 'dart:typed_data';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:permission_handler/permission_handler.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 void main() {
   runApp(MyApp());
@@ -91,26 +93,48 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  void _sendMessage(String message) {
+void _sendMessage(String message) async {
+  setState(() {
+    DateTime now = DateTime.now();
+    String formattedDateTime = '${now.hour}:${now.minute}';
+    
+    Map<String, dynamic> messageData = {
+      'message': message,
+      'response': 'Cargando...',
+      'timestamp': formattedDateTime,
+    };
+    
+    chatHistory.add(messageData);
+    _controller.clear();
+  });
+
+  try {
+    final response = await http.post(
+      Uri.parse('http://192.168.1.2:5000/chat'),  // Reemplaza '192.168.x.x' con la dirección correcta
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'prompt': message}),
+    );
+
+    if (response.statusCode == 200) {
+      final responseData = jsonDecode(response.body);
+      setState(() {
+        chatHistory.last['response'] = responseData['response'];
+      });
+      print("Respuesta del servidor Flask: ${responseData['response']}");
+    } else {
+      setState(() {
+        chatHistory.last['response'] = 'Error: ${response.body}';
+      });
+      print("Error en la respuesta del servidor Flask: ${response.body}");
+    }
+  } catch (e) {
     setState(() {
-      DateTime now = DateTime.now();
-      String formattedDateTime = '${now.hour}:${now.minute}';
-
-      String trimmedMessage = message.trim().toLowerCase();
-      String response = predefinedResponses.containsKey(trimmedMessage)
-          ? predefinedResponses[trimmedMessage]!
-          : predefinedResponses['default']!;
-
-      Map<String, dynamic> messageData = {
-        'message': message,
-        'response': response,
-        'timestamp': formattedDateTime,
-      };
-
-      chatHistory.add(messageData);
-      _controller.clear();
+      chatHistory.last['response'] = 'Error: $e';
     });
+    print("Error en la solicitud HTTP: $e");
   }
+}
+
 
   void _listen() async {
     if (!_isListening) {
